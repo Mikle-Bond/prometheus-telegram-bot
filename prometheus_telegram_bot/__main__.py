@@ -11,7 +11,7 @@ import collections
 import telegram
 import codecs
 
-from telegram.ext import Updater, CommandHandler
+from telegram.ext import Application, Updater, CommandHandler
 
 from .utils import configure_log
 from .prometheus import PrometheusClient
@@ -105,19 +105,18 @@ def main(args=None):
     global prometheus
     prometheus = PrometheusClient(config['prometheus'])
 
-    updater = Updater(token=tg_token, use_context=True)
-    dispatcher = updater.dispatcher
-
-    dispatcher.add_handler(CommandHandler('start', tg_start))
-    dispatcher.add_handler(CommandHandler('help', tg_help))
+    app = Application.builder().token(tg_token).build()
+    
+    app.add_handler(CommandHandler('start', tg_start))
+    app.add_handler(CommandHandler('help', tg_help))
 
     for command, queries in config['queries'].items():
         logging.info(
             f'Adding handler for {command} with {len(queries)} queries')
-        dispatcher.add_handler(CommandHandler(command, tg_query))
+        app.add_handler(CommandHandler(command, tg_query))
 
         command_queries[f'/{command}'] = queries
 
     logging.info('Starting polling for Telegram messages...')
 
-    updater.start_polling()
+    app.run_polling()
